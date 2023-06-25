@@ -14,14 +14,15 @@ eres <- function(e, delta, pi, ind_km) {
 }
 
 semi_rk_est <- function(x, y, delta, pi, n, 
-                        control = list(init = lsfit(x[, -1], y, intercept = FALSE)$coefficient)) 
+                        control = list(init = lsfit(x[, -1], y, intercept = FALSE)$coefficient,
+                                       tol = 1e-5, maxit = 1000)) 
 {
   out <- nleqslv::nleqslv(x = control$init, fn = function(b) {
     colSums(gehan_smth(x[, -1], y, delta, pi, b, n))
   }, jac = function(b) {
     gehan_s_jaco(x[, -1], y, delta, pi, b, n)
   }, method = "Broyden", jacobian = FALSE, 
-  control = list(ftol = 1e-5, xtol = 1e-20, maxit = 1000))
+  control = list(ftol = control$tol, xtol = 1e-20, maxit = control$maxit))
   conv <- out$termcd
   coe <- out$x
   if (conv == 1) {
@@ -57,17 +58,16 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
     dt_pt <- delta[ind_pt]
     mle_pt <- semi_rk_est(x_pt, y_pt, dt_pt, ssp_pt, n)
     if (mle_pt$converge %in% c(1, 2)) {
-      return(list(ssp = NA, index.pilot = NA, 
-                  converge = c(3, mle_pt$converge)))
+      return(list(ssp = NA, index.pilot = NA, converge = mle_pt$converge))
     }
     bt_pt <- mle_pt$coefficient
     e_pt <- y - x %*% bt_pt
     g <- gehan_s_mtg(x, y, delta, rep(1/n, n), bt_pt, ind_pt-1, n)
     g <- g[, -1]
-    if (ssp_type == "mVc") {
+    if (ssp_type == "optL") {
       g_nm <- sqrt(rowSums(g^2))
       ssp <- g_nm / sum(g_nm) * (1 - alpha) + alpha / n
-    } else if (ssp_type == "mMSE") {
+    } else if (ssp_type == "optA") {
       m_inv <- solve(gehan_s_jaco(x_pt[, -1], y_pt, dt_pt, ssp_pt, bt_pt[-1], n))
       m_mse <- sqrt(colSums((tcrossprod(m_inv, g))^2))
       ssp <- m_mse / sum(m_mse) * (1 - alpha) + alpha / n
@@ -81,8 +81,8 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
 semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   n <- nrow(x)
   ssps <- semi_rk_ssp(x, y, delta, r0, ssp_type, alpha)
-  if (is.na(ssps[[1]][1])) {
-    return(list(coe = NA, std = NA, converge = ssps$converge))
+  if (ssps$converge != 0) {
+    stop(paste0("Fail to get a converging pilot estimator. The converging code is ", ssps$converge))
   }
   pi <- ssps$ssp
   ind_pt <- ssps$index.pilot
@@ -91,7 +91,7 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   sec_ssp <- c(pi[ind_r], rep(1 / n, r0))
   est <- semi_rk_est(x[ind, ], y[ind], delta[ind], sec_ssp, n)
   if (est$converge %in% c(1, 2)) {
-    return(list(coe = NA, std = NA, converge = est$converge))
+    stop(paste0("Fail to get a converging second-step estimator. The converging code is ", est$converge))
   }
   coe <- as.vector(est$coefficient)
   iter <- est$iter

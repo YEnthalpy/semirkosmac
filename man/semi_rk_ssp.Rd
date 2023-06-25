@@ -2,7 +2,7 @@
 \alias{semi_rk_ssp}
 \title{Calculate the Optimal Subsample Probabilities}
 \usage{
-semi_rk_ssp(x, y, delta, r0, ssp_type, b, alpha)
+semi_rk_ssp(x, y, delta, r0, ssp_type, alpha)
 }
 \arguments{
 \item{x}{the input covariate matrix.}
@@ -16,10 +16,6 @@ semi_rk_ssp(x, y, delta, r0, ssp_type, b, alpha)
 \item{ssp_type}{the type of optimal subsampling probabilities (SSPs). `optA` for the
                 `optA` SSPs; `optL` for the `optL` SSPs; `uniform` for the
                 uniform SSPs.}
-
-\item{b}{the number of noises generated in the resampling method to estimate the
-         slope matrix. This argument is necessary only when the `ssp_type` argument
-         being `optA`.}
          
 \item{alpha}{propotion of uniform SSPs mixed with the optimal SSPs.}
 }
@@ -45,7 +41,7 @@ index.pilot, the index of pilot subsample in the full sample;
 coverge, the converging message of the pilot estimator.
 }
 \examples{
-library(semiaftosmac)
+library(semirkosmac)
 # Load the full data
 data(lymp)
 x <- lymp$covariates
@@ -55,7 +51,7 @@ n <- nrow(x)
 
 # Get the optimal SSPs based on A-optimality
 set.seed(101)
-ssps <- semi_ls_ssp(x, y, delta, r0 = 3000, 
-                    ssp_type = "optA", b = 100, alpha = 0.2)
+ssps <- semi_rk_ssp(x, y, delta, r0 = 500, 
+                    ssp_type = "optA", alpha = 0.2)
 }
-\keyword{semi_ls_ssp}
+\keyword{semi_rk_ssp}

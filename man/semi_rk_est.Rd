@@ -3,8 +3,7 @@
 \title{Calculate the Subsample Estimator}
 \usage{
 semi_rk_est(x, y, delta, pi, n, 
-            control = list(init = rep(0, ncol(x)), 
-            tol = 1e-5, maxit = 200))
+            control = list(init = lsfit(x[, -1], y, intercept = FALSE)$coefficient)) 
 }
 \arguments{
 \item{x}{the input covariate matrix.}
@@ -28,7 +27,8 @@ semi_rk_est(x, y, delta, pi, n,
                 1 for failing to converge;
                 2 for the iteration limit `maxit` has been reached}
 
-\item{ite}{the number of iterations if it successfully converges.}
+\item{ite}{the number of iterations, the estimating function and the 
+jacobian matrix evaluated if it successfully converges; }
 }
 
 \description{
@@ -37,9 +37,11 @@ covariate matrix x, response vector y, censoring indicator delta and the
 subsampling probabilities. It returns a list with three elements: 
 coefficient, the subample estimator; 
 coverge, the converging message; ite, the number of itterations used.
+We use the Broyden's method (a Quasi-Newton method) in 
+the R-package \code{nleqslv} to solve the estimating function.
 }
 \examples{
-library(semiaftosmac)
+library(semirkosmac)
 # Load the full data
 data(lymp)
 x <- lymp$covariates
@@ -48,11 +50,11 @@ delta <- lymp$delta
 n <- nrow(x)
 
 # Sampling with replacement based on uniform subsampling method
-# Subsample size 3000
+# Subsample size 500
 set.seed(101)
-ind <- sample(n, 3000, replace = TRUE)
+ind <- sample(n, 500, replace = TRUE)
 
 # Get the subsample estimator
-semi_ls_est(x[ind, ], y[ind], delta[ind], rep(1/n, 3000), n)
+semi_rk_est(x[ind, ], y[ind], delta[ind], rep(1/n, 500), n)
 }
-\keyword{semi_ls_est}
+\keyword{semi_rk_est}

@@ -1,11 +1,11 @@
 Package: semirkosmac
 Type: Package
-Title: What the package does (short line)
+Title: OSMAC for Semi-parametric AFT Model under Rank-based Approach
 Version: 1.0
 Date: 2023-06-25
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
+Author: Zehan Yang
+Maintainer: Zehan Yang <zehan.yang@uconn.edu>
+Description: Optimal Subsampling Approach for Semi-parametric Accelerated Failure Time Model under rank-based approach.
 License: What license is it under?
 Imports: Rcpp (>= 1.0.10)
 LinkingTo: Rcpp, RcppArmadillo

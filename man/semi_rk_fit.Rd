@@ -2,8 +2,8 @@
 \alias{semi_rk_fit}
 \title{The Two-step Procedure}
 \usage{
-semi_rk_fit(x, y, delta, r0, r, ssp_type, method, 
-            se = TRUE, b = 20, itr = 5, alpha = 0.2) 
+semi_rk_fit(x, y, delta, r0, r, ssp_type, 
+            se = TRUE, alpha = 0.2) 
 }
 \arguments{
 \item{x}{the input covariate matrix.}
@@ -12,8 +12,6 @@ semi_rk_fit(x, y, delta, r0, r, ssp_type, method,
 
 \item{delta}{the input censoring indicator.}
 
-\item{pi}{the subsampling probabilities.}
-
 \item{r0}{the input pilot subsample size.}
 
 \item{r}{the input second-step subsample size.}
@@ -21,24 +19,10 @@ semi_rk_fit(x, y, delta, r0, r, ssp_type, method,
 \item{ssp_type}{the type of optimal subsampling probabilities (SSPs). `optA` for the
                 `optA` SSPs; `optL` for the `optL` SSPs; `uniform` for the
                 uniform SSPs.}
-                
-\item{method}{the method to calculate the subsample estimator and standard errors.
-              `one` for using one second-step subsample to calculate the resultant
-              estimator and the variance is calculated based on a sandwich form.
-              `multiple` for using multiple second-step subsample to calculate the
-              resultant estimator and the standard is calculated by the sample
-              standard error.}
               
 \item{se}{the indicator of calculating standard errors. The default is `TRUE`.}
-
-\item{b}{the number of noises generated in the resampling method to estimate the
-         slope matrix. This argument is necessary only when the `ssp_type` argument
-         being `optA` or the `method` argument being `one`.}
-         
-\item{itr}{the number of subsample estimators are calculated when the `method`
-           argument being `multiple`.}
            
-\item{alpha}{propotion of uniform SSPs mixed with the optimal SSPs.}
+\item{alpha}{propotion of uniform SSPs mixed with the optimal SSPs. The default is 0.2.}
 }
 
 \value{
@@ -48,11 +32,6 @@ semi_rk_fit(x, y, delta, r0, r, ssp_type, method,
                 0 for successful converging;
                 1 for failing to converge;
                 2 for the iteration limit `maxit` has been reached.
-                If the `method` argument is `multiple` and at least one 
-                subsampling procedure does not converge, the output is a matrix
-                with the first row representing the number of `1` and the second
-                row representing the number of `2` among all non-converging subsampling
-                procedures.
                 }
 
 \item{ite}{the number of iterations if it successfully converges.}
@@ -70,7 +49,7 @@ coverge, the converging message; ite, the number of iterations used; std, the
 standard error estimator.
 }
 \examples{
-library(semiaftosmac)
+library(semirkosmac)
 # Load the full data
 data(lymp)
 x <- lymp$covariates
@@ -78,9 +57,10 @@ y <- log(lymp$response)
 delta <- lymp$delta
 n <- nrow(x)
 
-# Get the subsample estimator using A-optimal SSPs when `r0 = 2000` and `r = 4000`.
+# Get the subsample estimator using A-optimal SSPs when \code{r0 = 500} and \code{r = 2000}.
 set.seed(101)
-semi_ls_fit(x, y, delta, r0 = 3000, r = 5000, ssp_type = "optA",
-            method = "one", se = "TRUE", b = 100, alpha = 0.2)
+semi_rk_fit(x, y, delta, r0 = 500, r = 2000, 
+            ssp_type = "optA", se = "TRUE", 
+            alpha = 0.2)
 }
-\keyword{semi_ls_fit}
+\keyword{semi_rk_fit}
