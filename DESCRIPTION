@@ -9,3 +9,4 @@ Description: Optimal Subsampling Approach for Semi-parametric Accelerated Failur
 License: What license is it under?
 Imports: Rcpp (>= 1.0.10)
 LinkingTo: Rcpp, RcppArmadillo
+Depends: nleqslv
