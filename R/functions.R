@@ -13,33 +13,40 @@ eres <- function(e, delta, pi, ind_km) {
   return(list(ehat, es_int))
 }
 
-semi_rk_est <- function(x, y, delta, pi, n, 
-                        control = list(init = lsfit(x[, -1], y, intercept = FALSE)$coefficient,
-                                       tol = 1e-5, maxit = 1000)) 
-{
-  out <- nleqslv::nleqslv(x = control$init, fn = function(b) {
-    colSums(gehan_smth(x[, -1], y, delta, pi, b, n))
-  }, jac = function(b) {
-    gehan_s_jaco(x[, -1], y, delta, pi, b, n)
-  }, method = "Broyden", jacobian = FALSE, 
-  control = list(ftol = control$tol, xtol = 1e-20, maxit = control$maxit))
+semi_rk_est <- function(x, y, delta, pi, n,
+                        control = list(
+                          init = lsfit(x[, -1], y,
+                            intercept = FALSE
+                          )$coefficient,
+                          tol = 1e-5, maxit = 1000
+                        )) {
+  out <- nleqslv::nleqslv(
+    x = control$init, fn = function(b) {
+      colSums(gehan_smth(x[, -1], y, delta, pi, b, n))
+    }, jac = function(b) {
+      gehan_s_jaco(x[, -1], y, delta, pi, b, n)
+    }, method = "Broyden", jacobian = FALSE,
+    control = list(ftol = control$tol, xtol = 1e-20, maxit = control$maxit)
+  )
   conv <- out$termcd
   coe <- out$x
   if (conv == 1) {
     conv <- 0
-    coe <- c(max(eres((y - x[, -1] %*% coe), delta, pi, seq_along(y))[[2]]), coe)
-  }
-  else if (conv %in% c(2, 4)) {
+    coe <- c(max(eres(
+      (y - x[, -1] %*% coe), delta, pi, seq_along(y)
+    )[[2]]), coe)
+  } else if (conv %in% c(2, 4)) {
     conv <- 2
     coe <- rep(NA, ncol(x))
-  }
-  else {
+  } else {
     conv <- 1
     coe <- rep(NA, ncol(x))
   }
-  names(coe) <- c("intercept", paste0("beta", seq_len(ncol(x)-1)))
-  return(list(coefficient = coe, converge = conv, 
-              iter = c(out$iter, out$njcnt, out$nfcnt)))
+  names(coe) <- c("intercept", paste0("beta", seq_len(ncol(x) - 1)))
+  return(list(
+    coefficient = coe, converge = conv,
+    iter = c(out$iter, out$njcnt, out$nfcnt)
+  ))
 }
 
 
@@ -61,14 +68,15 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
       return(list(ssp = NA, index.pilot = NA, converge = mle_pt$converge))
     }
     bt_pt <- mle_pt$coefficient
-    e_pt <- y - x %*% bt_pt
-    g <- gehan_s_mtg(x, y, delta, rep(1/n, n), bt_pt, ind_pt-1, n)
+    g <- gehan_s_mtg(x, y, delta, rep(1 / n, n), bt_pt, ind_pt - 1, n)
     g <- g[, -1]
     if (ssp_type == "optL") {
       g_nm <- sqrt(rowSums(g^2))
       ssp <- g_nm / sum(g_nm) * (1 - alpha) + alpha / n
     } else if (ssp_type == "optA") {
-      m_inv <- solve(gehan_s_jaco(x_pt[, -1], y_pt, dt_pt, ssp_pt, bt_pt[-1], n))
+      m_inv <- solve(gehan_s_jaco(
+        x_pt[, -1], y_pt, dt_pt, ssp_pt, bt_pt[-1], n
+      ))
       m_mse <- sqrt(colSums((tcrossprod(m_inv, g))^2))
       ssp <- m_mse / sum(m_mse) * (1 - alpha) + alpha / n
     }
@@ -82,7 +90,8 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   n <- nrow(x)
   ssps <- semi_rk_ssp(x, y, delta, r0, ssp_type, alpha)
   if (ssps$converge != 0) {
-    stop(paste0("Fail to get a converging pilot estimator. The converging code is ", ssps$converge))
+    stop(paste0("Fail to get a converging pilot
+    estimator. The converging code is ", ssps$converge))
   }
   pi <- ssps$ssp
   ind_pt <- ssps$index.pilot
@@ -91,28 +100,33 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   sec_ssp <- c(pi[ind_r], rep(1 / n, r0))
   est <- semi_rk_est(x[ind, ], y[ind], delta[ind], sec_ssp, n)
   if (est$converge %in% c(1, 2)) {
-    stop(paste0("Fail to get a converging second-step estimator. The converging code is ", est$converge))
+    stop(paste0("Fail to get a converging second-step
+    estimator. The converging code is ", est$converge))
   }
   coe <- as.vector(est$coefficient)
   iter <- est$iter
   if (se) {
     r <- r + r0
-    g <- gehan_s_mtg(x[ind, ], y[ind], delta[ind], sec_ssp, 
-                     coe, seq_along(ind)-1, n)
+    g <- gehan_s_mtg(
+      x[ind, ], y[ind], delta[ind], sec_ssp,
+      coe, seq_along(ind) - 1, n
+    )
     vc <- crossprod(g) * r
     vc_amend <- crossprod(sec_ssp * g, g) * r * n
     vc <- vc[-1, -1] + (r / n) * vc_amend[-1, -1]
-    m_inv <- solve(gehan_s_jaco(x[ind, -1], y[ind], delta[ind],
-                                sec_ssp, coe[-1], n))
+    m_inv <- solve(gehan_s_jaco(
+      x[ind, -1], y[ind], delta[ind],
+      sec_ssp, coe[-1], n
+    ))
     vx <- m_inv %*% vc %*% m_inv / r
     std <- c(sqrt(diag(vx)))
   } else {
     std <- NA
   }
   if (is.null(colnames(x))) {
-    names(coe) <- c("Intercept", paste0("Beta", seq(1, ncol(x)-1, 1)))
-    names(std) <- paste0("Beta", seq(1, ncol(x)-1, 1))
-  }else {
+    names(coe) <- c("Intercept", paste0("Beta", seq(1, ncol(x) - 1, 1)))
+    names(std) <- paste0("Beta", seq(1, ncol(x) - 1, 1))
+  } else {
     names(coe) <- colnames(x)
     names(std) <- colnames(x)[-1]
   }
