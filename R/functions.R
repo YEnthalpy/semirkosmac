@@ -109,5 +109,12 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   } else {
     std <- NA
   }
+  if (is.null(colnames(x))) {
+    names(coe) <- c("Intercept", paste0("Beta", seq(1, ncol(x)-1, 1)))
+    names(std) <- paste0("Beta", seq(1, ncol(x)-1, 1))
+  }else {
+    names(coe) <- colnames(x)
+    names(std) <- colnames(x)[-1]
+  }
   return(list(coe = coe, std = std, iter = iter, converge = 0))
 }
