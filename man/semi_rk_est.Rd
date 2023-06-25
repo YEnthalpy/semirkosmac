@@ -3,7 +3,8 @@
 \title{Calculate the Subsample Estimator}
 \usage{
 semi_rk_est(x, y, delta, pi, n, 
-            control = list(init = lsfit(x[, -1], y, intercept = FALSE)$coefficient)) 
+            control = list(init = lsfit(x[, -1], y, intercept = FALSE)$coefficient,
+                           tol = 1e-5, maxit = 1000)) 
 }
 \arguments{
 \item{x}{the input covariate matrix.}
