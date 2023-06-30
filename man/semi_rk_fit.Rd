@@ -57,7 +57,8 @@ y <- log(lymp$response)
 delta <- lymp$delta
 n <- nrow(x)
 
-# Get the subsample estimator using A-optimal SSPs when \code{r0 = 500} and \code{r = 2000}.
+# Get the subsample estimator using A-optimal SSPs 
+# when \code{r0 = 500} and \code{r = 2000}.
 set.seed(101)
 semi_rk_fit(x, y, delta, r0 = 500, r = 2000, 
             ssp_type = "optA", se = "TRUE", 
