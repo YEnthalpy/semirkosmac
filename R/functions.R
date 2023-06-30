@@ -98,7 +98,7 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   ind_r <- sample(n, r, prob = pi, replace = TRUE)
   ind <- c(ind_r, ind_pt)
   sec_ssp <- c(pi[ind_r], rep(1 / n, r0))
-  t_est <- sytem.time(est <- semi_rk_est(x[ind, ], y[ind], delta[ind], sec_ssp, n))
+  t_est <- system.time(est <- semi_rk_est(x[ind, ], y[ind], delta[ind], sec_ssp, n))
   if (est$converge %in% c(1, 2)) {
     stop(paste0("Fail to get a converging second-step
     estimator. The converging code is ", est$converge))
