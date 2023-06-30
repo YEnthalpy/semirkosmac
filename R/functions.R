@@ -88,7 +88,7 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
 ## 6. Get estiamted coefficient and standard error
 semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   n <- nrow(x)
-  ssps <- semi_rk_ssp(x, y, delta, r0, ssp_type, alpha)
+  t_ssp <- system.time(ssps <- semi_rk_ssp(x, y, delta, r0, ssp_type, alpha))
   if (ssps$converge != 0) {
     stop(paste0("Fail to get a converging pilot
     estimator. The converging code is ", ssps$converge))
@@ -98,14 +98,15 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   ind_r <- sample(n, r, prob = pi, replace = TRUE)
   ind <- c(ind_r, ind_pt)
   sec_ssp <- c(pi[ind_r], rep(1 / n, r0))
-  est <- semi_rk_est(x[ind, ], y[ind], delta[ind], sec_ssp, n)
+  t_est <- sytem.time(est <- semi_rk_est(x[ind, ], y[ind], delta[ind], sec_ssp, n))
   if (est$converge %in% c(1, 2)) {
     stop(paste0("Fail to get a converging second-step
     estimator. The converging code is ", est$converge))
   }
   coe <- as.vector(est$coefficient)
   iter <- est$iter
-  if (se) {
+  t_se <- system.time(
+  {if (se) {
     r <- r + r0
     g <- gehan_s_mtg(
       x[ind, ], y[ind], delta[ind], sec_ssp,
@@ -122,7 +123,7 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
     std <- c(sqrt(diag(vx)))
   } else {
     std <- NA
-  }
+  }})
   if (is.null(colnames(x))) {
     names(coe) <- c("Intercept", paste0("Beta", seq(1, ncol(x) - 1, 1)))
     names(std) <- paste0("Beta", seq(1, ncol(x) - 1, 1))
@@ -130,5 +131,8 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
     names(coe) <- colnames(x)
     names(std) <- colnames(x)[-1]
   }
-  return(list(coe = coe, std = std, iter = iter, converge = 0))
+  time <- cbind(t_ssp, t_est, t_se)
+  colnames(time) <- c("SSPs", "Est", "SE")
+  return(list(coe = coe, std = std, iter = iter, 
+              converge = 0, time = time))
 }
