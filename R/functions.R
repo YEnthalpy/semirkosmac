@@ -80,7 +80,8 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
       m_mse <- sqrt(colSums((tcrossprod(m_inv, g))^2))
       ssp <- m_mse / sum(m_mse) * (1 - alpha) + alpha / n
     }
-    return(list(ssp = ssp, index.pilot = ind_pt, converge = 0))
+    return(list(ssp = ssp, est.pilot = bt_pt, 
+                index.pilot = ind_pt, converge = 0))
   }
 }
 
@@ -94,30 +95,30 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
     estimator. The converging code is ", ssps$converge))
   }
   pi <- ssps$ssp
-  ind_pt <- ssps$index.pilot
   ind_r <- sample(n, r, prob = pi, replace = TRUE)
-  ind <- c(ind_r, ind_pt)
-  sec_ssp <- c(pi[ind_r], rep(1 / n, r0))
-  t_est <- system.time(est <- semi_rk_est(x[ind, ], y[ind], delta[ind], sec_ssp, n))
+  t_est <- system.time(est <- semi_rk_est(x[ind_r, ], y[ind_r], 
+                                          delta[ind_r], pi[ind_r], n))
   if (est$converge %in% c(1, 2)) {
     stop(paste0("Fail to get a converging second-step
     estimator. The converging code is ", est$converge))
   }
   coe <- as.vector(est$coefficient)
   iter <- est$iter
+  coe_out <- coe * r / (r + r0) + ssps$est.pilot * r0 / (r + r0)
   t_se <- system.time(
   {if (se) {
-    r <- r + r0
+    ind_st <- c(ind_r, ssps$index.pilot)
+    pi_st <- c(pi[ind_r], rep(1/n, r0))
     g <- gehan_s_mtg(
-      x[ind, ], y[ind], delta[ind], sec_ssp,
-      coe, seq_along(ind) - 1, n
+      x[ind_st, ], y[ind_st], delta[ind_st], pi_st,
+      coe_out, seq_along(ind_st) - 1, n
     )
     vc <- crossprod(g) * r
-    vc_amend <- crossprod(sec_ssp * g, g) * r * n
+    vc_amend <- crossprod(pi[ind_st] * g, g) * r * n
     vc <- vc[-1, -1] + (r / n) * vc_amend[-1, -1]
     m_inv <- solve(gehan_s_jaco(
-      x[ind, -1], y[ind], delta[ind],
-      sec_ssp, coe[-1], n
+      x[ind_st, -1], y[ind_st], delta[ind_st],
+      pi_st, coe_out[-1], n
     ))
     vx <- m_inv %*% vc %*% m_inv / r
     std <- c(sqrt(diag(vx)))
@@ -133,6 +134,6 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   }
   time <- cbind(t_ssp, t_est, t_se)
   colnames(time) <- c("SSPs", "Est", "SE")
-  return(list(coe = coe, std = std, iter = iter, 
+  return(list(coe = coe_out, std = std, iter = iter, 
               converge = 0, time = time))
 }
