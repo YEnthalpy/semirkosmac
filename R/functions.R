@@ -56,7 +56,8 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
   n <- nrow(x)
   if (ssp_type == "uniform") {
     ssp <- rep(1 / n, n)
-    return(list(ssp = ssp, index.pilot = sample(n, r0, TRUE)))
+    return(list(ssp = ssp, index.pilot = sample(n, r0, TRUE), 
+                converge = 0))
   } else {
     ssp_pt <- rep(1 / n, r0)
     ind_pt <- sample(n, r0, TRUE)
@@ -96,15 +97,22 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   }
   pi <- ssps$ssp
   ind_r <- sample(n, r, prob = pi, replace = TRUE)
-  t_est <- system.time(est <- semi_rk_est(x[ind_r, ], y[ind_r], 
-                                          delta[ind_r], pi[ind_r], n))
+  if (ssp_type == "uniform") {
+    ind_st <- c(ind_r, ssps$index.pilot)
+    t_est <- system.time(est <- semi_rk_est(x[ind_st, ], y[ind_st],
+                                            delta[ind_st], rep(1/n, (r+r0)), n))
+    coe_out <- as.vector(est$coefficient)
+  }else {
+    t_est <- system.time(est <- semi_rk_est(x[ind_r, ], y[ind_r], 
+                                            delta[ind_r], pi[ind_r], n))
+    coe <- as.vector(est$coefficient)
+    coe_out <- coe * r / (r + r0) + ssps$est.pilot * r0 / (r + r0)
+  }
+  iter <- est$iter
   if (est$converge %in% c(1, 2)) {
     stop(paste0("Fail to get a converging second-step
     estimator. The converging code is ", est$converge))
   }
-  coe <- as.vector(est$coefficient)
-  iter <- est$iter
-  coe_out <- coe * r / (r + r0) + ssps$est.pilot * r0 / (r + r0)
   t_se <- system.time(
   {if (se) {
     ind_st <- c(ind_r, ssps$index.pilot)
@@ -126,10 +134,10 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
     std <- NA
   }})
   if (is.null(colnames(x))) {
-    names(coe) <- c("Intercept", paste0("Beta", seq(1, ncol(x) - 1, 1)))
+    names(coe_out) <- c("Intercept", paste0("Beta", seq(1, ncol(x) - 1, 1)))
     names(std) <- paste0("Beta", seq(1, ncol(x) - 1, 1))
   } else {
-    names(coe) <- colnames(x)
+    names(coe_out) <- colnames(x)
     names(std) <- colnames(x)[-1]
   }
   time <- cbind(t_ssp, t_est, t_se)
