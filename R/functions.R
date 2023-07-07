@@ -15,16 +15,14 @@ eres <- function(e, delta, pi, ind_km) {
 
 semi_rk_est <- function(x, y, delta, pi, n,
                         control = list(
-                          init = lsfit(x[, -1], y,
-                            intercept = FALSE
-                          )$coefficient,
+                          init = lsfit(x, y, intercept = FALSE)$coefficient,
                           tol = 1e-5, maxit = 1000
                         )) {
   out <- nleqslv::nleqslv(
     x = control$init, fn = function(b) {
-      colSums(gehan_smth(x[, -1], y, delta, pi, b, n))
+      colSums(gehan_smth(x, y, delta, pi, b, n))
     }, jac = function(b) {
-      gehan_s_jaco(x[, -1], y, delta, pi, b, n)
+      gehan_s_jaco(x, y, delta, pi, b, n)
     }, method = "Broyden", jacobian = FALSE,
     control = list(ftol = control$tol, xtol = 1e-20, maxit = control$maxit)
   )
@@ -32,9 +30,6 @@ semi_rk_est <- function(x, y, delta, pi, n,
   coe <- out$x
   if (conv == 1) {
     conv <- 0
-    coe <- c(max(eres(
-      (y - x[, -1] %*% coe), delta, pi, seq_along(y)
-    )[[2]]), coe)
   } else if (conv %in% c(2, 4)) {
     conv <- 2
     coe <- rep(NA, ncol(x))
@@ -42,7 +37,7 @@ semi_rk_est <- function(x, y, delta, pi, n,
     conv <- 1
     coe <- rep(NA, ncol(x))
   }
-  names(coe) <- c("intercept", paste0("beta", seq_len(ncol(x) - 1)))
+  names(coe) <- paste0("beta", seq_len(ncol(x)))
   return(list(
     coefficient = coe, converge = conv,
     iter = c(out$iter, out$njcnt, out$nfcnt)
@@ -70,19 +65,17 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
     }
     bt_pt <- mle_pt$coefficient
     g <- gehan_s_mtg(x, y, delta, rep(1 / n, n), bt_pt, ind_pt - 1, n)
-    g <- g[, -1]
+    m <- gehan_s_jaco(x_pt, y_pt, dt_pt, ssp_pt, bt_pt, n)
     if (ssp_type == "optL") {
       g_nm <- sqrt(rowSums(g^2))
       ssp <- g_nm / sum(g_nm) * (1 - alpha) + alpha / n
     } else if (ssp_type == "optA") {
-      m_inv <- solve(gehan_s_jaco(
-        x_pt[, -1], y_pt, dt_pt, ssp_pt, bt_pt[-1], n
-      ))
+      m_inv <- solve(m)
       m_mse <- sqrt(colSums((tcrossprod(m_inv, g))^2))
       ssp <- m_mse / sum(m_mse) * (1 - alpha) + alpha / n
     }
     return(list(ssp = ssp, est.pilot = bt_pt, 
-                index.pilot = ind_pt, converge = 0))
+                index.pilot = ind_pt, M = m, converge = 0))
   }
 }
 
@@ -105,8 +98,11 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   }else {
     t_est <- system.time(est <- semi_rk_est(x[ind_r, ], y[ind_r], 
                                             delta[ind_r], pi[ind_r], n))
-    coe <- as.vector(est$coefficient)
-    coe_out <- coe * r / (r + r0) + ssps$est.pilot * r0 / (r + r0)
+    coe_sec <- as.vector(est$coefficient)
+    m_sec <- r * gehan_s_jaco(x[ind_r, ], y[ind_r], delta[ind_r],
+                          pi[ind_r], coe_sec, n)
+    m_pt <- r0 * ssps$M
+    coe_out <- drop(solve(m_pt + m_sec) %*% (m_pt %*% ssps$est.pilot + m_sec %*% coe_sec))
   }
   iter <- est$iter
   if (est$converge %in% c(1, 2)) {
@@ -123,10 +119,10 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
     )
     vc <- crossprod(g) * r
     vc_amend <- crossprod(pi[ind_st] * g, g) * r * n
-    vc <- vc[-1, -1] + (r / n) * vc_amend[-1, -1]
+    vc <- vc + (r / n) * vc_amend
     m_inv <- solve(gehan_s_jaco(
-      x[ind_st, -1], y[ind_st], delta[ind_st],
-      pi_st, coe_out[-1], n
+      x[ind_st, ], y[ind_st], delta[ind_st],
+      pi_st, coe_out, n
     ))
     vx <- m_inv %*% vc %*% m_inv / r
     std <- c(sqrt(diag(vx)))
@@ -134,11 +130,11 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
     std <- NA
   }})
   if (is.null(colnames(x))) {
-    names(coe_out) <- c("Intercept", paste0("Beta", seq(1, ncol(x) - 1, 1)))
-    names(std) <- paste0("Beta", seq(1, ncol(x) - 1, 1))
+    names(coe_out) <- paste0("Beta", seq_len(ncol(x)))
+    names(std) <- paste0("Beta", seq_len(ncol(x)))
   } else {
     names(coe_out) <- colnames(x)
-    names(std) <- colnames(x)[-1]
+    names(std) <- colnames(x)
   }
   time <- cbind(t_ssp, t_est, t_se)
   colnames(time) <- c("SSPs", "Est", "SE")
