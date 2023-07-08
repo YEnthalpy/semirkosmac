@@ -15,11 +15,17 @@ eres <- function(e, delta, pi, ind_km) {
 
 semi_rk_est <- function(x, y, delta, pi, n,
                         control = list(
-                          init = lsfit(x, y, intercept = FALSE)$coefficient,
+                          init = "least-squares",
                           tol = 1e-5, maxit = 1000
                         )) {
+  if (sum(x[, 1]) == nrow(x)) {
+    x <- x[, -1]
+  }
+  if (control$init == "least-squares") {
+    init <- lsfit(x, y, intercept = FALSE)$coefficient
+  }
   out <- nleqslv::nleqslv(
-    x = control$init, fn = function(b) {
+    x = init, fn = function(b) {
       colSums(gehan_smth(x, y, delta, pi, b, n))
     }, jac = function(b) {
       gehan_s_jaco(x, y, delta, pi, b, n)
@@ -49,6 +55,10 @@ semi_rk_est <- function(x, y, delta, pi, n,
 ## 5. get the optimal ssps
 semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
   n <- nrow(x)
+  # get rid of the intercept
+  if (sum(x[, 1]) == n) {
+    x <- x[, -1]
+  }
   if (ssp_type == "uniform") {
     ssp <- rep(1 / n, n)
     return(list(
