@@ -55,24 +55,26 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
                 converge = 0))
   } else {
     ssp_pt <- rep(1 / n, r0)
-    ind_pt <- sample(n, r0, TRUE)
-    x_pt <- x[ind_pt, ]
+    ind_pt <- sample(n, r0, TRUE) # index of pilot sample
+    x_pt <- x[ind_pt, ] 
     y_pt <- y[ind_pt]
     dt_pt <- delta[ind_pt]
-    mle_pt <- semi_rk_est(x_pt, y_pt, dt_pt, ssp_pt, n)
+    mle_pt <- semi_rk_est(x_pt, y_pt, dt_pt, ssp_pt, n) # pilot estimator
     if (mle_pt$converge %in% c(1, 2)) {
       return(list(ssp = NA, index.pilot = NA, converge = mle_pt$converge))
     }
-    bt_pt <- mle_pt$coefficient
+    bt_pt <- mle_pt$coefficient # pilot estimator
+    # estimating function of all observations estimated by the pilot sample
     g <- gehan_s_mtg(x, y, delta, rep(1 / n, n), bt_pt, ind_pt - 1, n)
+    # hessian matrix estimated by the pilot sample
     m <- gehan_s_jaco(x_pt, y_pt, dt_pt, ssp_pt, bt_pt, n)
     if (ssp_type == "optL") {
       g_nm <- sqrt(rowSums(g^2))
-      ssp <- g_nm / sum(g_nm) * (1 - alpha) + alpha / n
+      ssp <- g_nm / sum(g_nm) * (1 - alpha) + alpha / n # optL SSPs
     } else if (ssp_type == "optA") {
       m_inv <- solve(m)
       m_mse <- sqrt(colSums((tcrossprod(m_inv, g))^2))
-      ssp <- m_mse / sum(m_mse) * (1 - alpha) + alpha / n
+      ssp <- m_mse / sum(m_mse) * (1 - alpha) + alpha / n # optA SSPs
     }
     return(list(ssp = ssp, est.pilot = bt_pt, 
                 index.pilot = ind_pt, M = m, converge = 0))
@@ -83,25 +85,32 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
 ## 6. Get estiamted coefficient and standard error
 semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   n <- nrow(x)
+  # get optimal SSPs, the pilot sample, the pilot estimator
+  # and the M estimated by the pilot sample
   t_ssp <- system.time(ssps <- semi_rk_ssp(x, y, delta, r0, ssp_type, alpha))
   if (ssps$converge != 0) {
     stop(paste0("Fail to get a converging pilot
     estimator. The converging code is ", ssps$converge))
   }
-  pi <- ssps$ssp
-  ind_r <- sample(n, r, prob = pi, replace = TRUE)
+  pi <- ssps$ssp # optimal SSPs
+  ind_r <- sample(n, r, prob = pi, replace = TRUE) # index of second-step subsample
   if (ssp_type == "uniform") {
     ind_st <- c(ind_r, ssps$index.pilot)
+    # using uniform SSPs as the control group
+    # combine pilot and second-step subsample to derive the final estimator
     t_est <- system.time(est <- semi_rk_est(x[ind_st, ], y[ind_st],
                                             delta[ind_st], rep(1/n, (r+r0)), n))
     coe_out <- as.vector(est$coefficient)
   }else {
+    # second-step estimator
     t_est <- system.time(est <- semi_rk_est(x[ind_r, ], y[ind_r], 
                                             delta[ind_r], pi[ind_r], n))
     coe_sec <- as.vector(est$coefficient)
+    # hessian matrix estimated by the second step subsample
     m_sec <- r * gehan_s_jaco(x[ind_r, ], y[ind_r], delta[ind_r],
                           pi[ind_r], coe_sec, n)
     m_pt <- r0 * ssps$M
+    # aggregate the pilot and second-step estimator
     coe_out <- drop(solve(m_pt + m_sec) %*% (m_pt %*% ssps$est.pilot + m_sec %*% coe_sec))
   }
   iter <- est$iter
@@ -111,20 +120,23 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   }
   t_se <- system.time(
   {if (se) {
-    ind_st <- c(ind_r, ssps$index.pilot)
-    pi_st <- c(pi[ind_r], rep(1/n, r0))
+    ind_st <- c(ind_r, ssps$index.pilot) # combined subsample index
+    pi_st <- c(pi[ind_r], rep(1/n, r0)) # combined SSPs
+    # estimating function estimated by the combined subsample
     g <- gehan_s_mtg(
       x[ind_st, ], y[ind_st], delta[ind_st], pi_st,
       coe_out, seq_along(ind_st) - 1, n
     )
+    # estimate vc
     vc <- crossprod(g) * r
     vc_amend <- crossprod(pi[ind_st] * g, g) * r * n
     vc <- vc + (r / n) * vc_amend
+    # inverse of the hessian matrix estimated by the second step subsample
     m_inv <- solve(gehan_s_jaco(
       x[ind_st, ], y[ind_st], delta[ind_st],
       pi_st, coe_out, n
     ))
-    vx <- m_inv %*% vc %*% m_inv / r
+    vx <- m_inv %*% vc %*% m_inv / r # sandwich estimator
     std <- c(sqrt(diag(vx)))
   } else {
     std <- NA
