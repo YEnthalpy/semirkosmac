@@ -34,7 +34,7 @@ jacobian matrix evaluated if it successfully converges; }
 
 \description{
 This function calculate the subsampling estiamtor for the subsample
-covariate matrix x, response vector y, censoring indicator delta and the 
+covariate matrix \code{x}, response vector \code{y}, censoring indicator delta and the 
 subsampling probabilities. It returns a list with three elements: 
 coefficient, the subample estimator; 
 coverge, the converging message; ite, the number of itterations used.

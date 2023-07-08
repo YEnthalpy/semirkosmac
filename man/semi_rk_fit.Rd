@@ -41,7 +41,7 @@ semi_rk_fit(x, y, delta, r0, r, ssp_type,
 
 \description{
 This function apply the two-step method for the full sample
-covariate matrix x, response vector y and censoring indicator delta with user
+covariate matrix \code{x}, response vector \code{y} and censoring indicator delta with user
 specified pilot subsample size and second-step subsample size.
 For more arguments, please read the details section.
 It returns a list with four elements: coefficient, the subample estimator; 

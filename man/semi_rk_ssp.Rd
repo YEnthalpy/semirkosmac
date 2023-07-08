@@ -33,8 +33,8 @@ semi_rk_ssp(x, y, delta, r0, ssp_type, alpha)
 
 \description{
 This function calculate the optimal subsampling probabilities for the full sample.
-The inputs are full sample covariate matrix x, response vector y and censoring
-indicator delta. Moreover, the pilot subsample size `r_0` needs to be specified. For
+The inputs are full sample covariate matrix \code{x}, response vector \code{y} and censoring
+indicator delta. Moreover, the pilot subsample size \code{r0} needs to be specified. For
 more arguments, please read the details section.
 It returns a list with three elements: ssp, the subsampling probabilities;
 index.pilot, the index of pilot subsample in the full sample; 
