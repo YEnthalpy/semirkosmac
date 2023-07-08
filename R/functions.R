@@ -85,6 +85,11 @@ semi_rk_ssp <- function(x, y, delta, r0, ssp_type, alpha) {
 ## 6. Get estiamted coefficient and standard error
 semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   n <- nrow(x)
+  intercept <- (sum(x[, 1]) == n)
+  # get rid of the intercept
+  if (intercept) {
+    x <- x[, -1]
+  }
   # get optimal SSPs, the pilot sample, the pilot estimator
   # and the M estimated by the pilot sample
   t_ssp <- system.time(ssps <- semi_rk_ssp(x, y, delta, r0, ssp_type, alpha))
@@ -129,27 +134,33 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
     )
     # estimate vc
     vc <- crossprod(g) * r
-    vc_amend <- crossprod(pi[ind_st] * g, g) * r * n
-    vc <- vc + (r / n) * vc_amend
+    vc_add <- crossprod(pi[ind_st] * g, g) * r * n
+    vc_amend <- vc + (r / n) * vc_add
     # inverse of the hessian matrix estimated by the second step subsample
     m_inv <- solve(gehan_s_jaco(
-      x[ind_st, ], y[ind_st], delta[ind_st],
-      pi_st, coe_out, n
-    ))
-    vx <- m_inv %*% vc %*% m_inv / r # sandwich estimator
+      x[ind_st, ], y[ind_st], delta[ind_st], pi_st, coe_out, n))
+    vx <- m_inv %*% vc %*% m_inv / r # sandwich estimator for full estimator
     std <- c(sqrt(diag(vx)))
+    vx_amend <- m_inv %*% vc_amend %*% m_inv / r # sandwich estimator for true coe
+    std_amend <- c(sqrt(diag(vx_amend)))
   } else {
-    std <- NA
+    std <- std_amend <- NA
   }})
   if (is.null(colnames(x))) {
     names(coe_out) <- paste0("Beta", seq_len(ncol(x)))
-    names(std) <- paste0("Beta", seq_len(ncol(x)))
+    names(std) <- names(std_amend) <- paste0("Beta", seq_len(ncol(x)))
   } else {
     names(coe_out) <- colnames(x)
-    names(std) <- colnames(x)
+    names(std) <- names(std_amend) <- colnames(x)
+  }
+  # add an intercept term if elements in the first column in x are 1's
+  if (intercept) {
+    coe_out <- c(max(eres((y[ind_st] - x[ind_st, ] %*% coe_out), 
+                          delta[ind_st], pi_st, (r+r0))[[2]]), coe_out)
+    names(coe_out) <- c("intercept", names(coe_out))
   }
   time <- cbind(t_ssp, t_est, t_se)
   colnames(time) <- c("SSPs", "Est", "SE")
-  return(list(coe = coe_out, std = std, iter = iter, 
+  return(list(coe = coe_out, std = std, std_amend = std_amend, iter = iter, 
               converge = 0, time = time))
 }
