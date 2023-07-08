@@ -39,7 +39,8 @@ subsampling probabilities. It returns a list with three elements:
 coefficient, the subample estimator; 
 coverge, the converging message; ite, the number of itterations used.
 We use the Broyden's method (a Quasi-Newton method) in 
-the R-package \code{nleqslv} to solve the estimating function.
+the R-package \code{nleqslv} to solve the estimating function. The intercept
+is not estimated in this function.
 }
 \examples{
 library(semirkosmac)

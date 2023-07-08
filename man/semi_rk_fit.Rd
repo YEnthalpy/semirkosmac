@@ -46,7 +46,9 @@ specified pilot subsample size and second-step subsample size.
 For more arguments, please read the details section.
 It returns a list with four elements: coefficient, the subample estimator; 
 coverge, the converging message; ite, the number of iterations used; std, the
-standard error estimator.
+standard error estimator. If elements in the first column of the covariate matrix
+\code{x} are one's, an intercept is estimated by the expectation of
+residuals calculated based on the Kaplan-Meier estimator of the survival function.
 }
 \examples{
 library(semirkosmac)
