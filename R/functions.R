@@ -155,9 +155,10 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
   }
   # add an intercept term if elements in the first column in x are 1's
   if (intercept) {
+    tmp <- names(coe_out)
     coe_out <- c(max(eres((y[ind_st] - x[ind_st, ] %*% coe_out), 
                           delta[ind_st], pi_st, (r+r0))[[2]]), coe_out)
-    names(coe_out) <- c("intercept", names(coe_out))
+    names(coe_out) <- c("intercept", tmp)
   }
   time <- cbind(t_ssp, t_est, t_se)
   colnames(time) <- c("SSPs", "Est", "SE")
