@@ -150,7 +150,7 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
       )
       # estimate vc
       vc <- crossprod(g) * r
-      vc_add <- crossprod(pi[ind_st] * g, g) * r * n
+      vc_add <- crossprod(pi_st * g, g) * r * n
       vc_amend <- vc + (r / n) * vc_add
       # inverse of the hessian matrix estimated by the second step subsample
       m_inv <- solve(gehan_s_jaco(
