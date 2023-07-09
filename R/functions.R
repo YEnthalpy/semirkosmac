@@ -149,18 +149,18 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
         coe_out, seq_along(ind_st) - 1, n
       )
       # estimate vc
-      vc <- crossprod(g) * r
-      vc_add <- crossprod(pi_st * g, g) * r * n
-      vc_amend <- vc + (r / n) * vc_add
+      vc <- crossprod(g) * (r + r0)
+      vc_add <- crossprod(pi_st * g, g) * (r + r0) * n
+      vc_amend <- vc + ((r + r0) / n) * vc_add
       # inverse of the hessian matrix estimated by the second step subsample
       m_inv <- solve(gehan_s_jaco(
         x[ind_st, ], y[ind_st], delta[ind_st], pi_st, coe_out, n
       ))
       # sandwich estimator for full estimator
-      vx <- m_inv %*% vc %*% m_inv / r 
+      vx <- m_inv %*% vc %*% m_inv / (r + r0)
       std <- c(sqrt(diag(vx)))
       # sandwich estimator for true coe
-      vx_amend <- m_inv %*% vc_amend %*% m_inv / r 
+      vx_amend <- m_inv %*% vc_amend %*% m_inv / (r + r0) 
       std_amend <- c(sqrt(diag(vx_amend)))
     } else {
       std <- std_amend <- NA
