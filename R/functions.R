@@ -179,7 +179,7 @@ semi_rk_fit <- function(x, y, delta, r0, r, ssp_type, se = TRUE, alpha = 0.2) {
       tmp <- names(coe_out)
       coe_out <- c(max(eres(
         (y[ind_st] - x[ind_st, ] %*% coe_out),
-        delta[ind_st], pi_st, (r + r0)
+        delta[ind_st], pi_st, seq_len(r + r0)
       )[[2]]), coe_out)
       names(coe_out) <- c("intercept", tmp)
     }
